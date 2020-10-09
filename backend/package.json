@@ -1,0 +1,21 @@
+{
+  "name": "tasks-todo",
+  "version": "1.0.0",
+  "description": "Tasks/Todo list with Node/ Express, MongoDB, React",
+  "main": "app.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "test": "jest"
+  },
+  "author": "Jose Jimenez Jr.",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "mongodb": "^3.6.2"
+  },
+  "devDependencies": {
+    "jest": "^26.5.2"
+  }
+}
