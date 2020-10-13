@@ -2,30 +2,44 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import TaskContainer from './TasksContainer'
 import AddNew from './AddNew'
+import { connect } from 'react-redux'
+import { loadTodosRequest, loadTodosFailure, loadTodosSuccess } from "../redux/actionCreators"
 
-const Home = () => {
+const Home = ({ taskList, editList, taskLoading, loadTodosRequest, loadTodosFailure, loadTodosSuccess }) => {
   const [tasks, setTasks] = useState({
     userInput: '',
-    taskList: [],
-    editList: {},
+    // taskList: [],
+    // editList: {},
     taskChanges: [],
     allActions: { title: false, edit: false, delete: false }
   })
 
-  const initEditList = (tasks) => {
-    let list = {}
-    tasks.map(task => {
-      list[task._id] = false
-    })
-    return list
-  }
+  // const initEditList = (tasks) => {
+  //   let list = {}
+  //   tasks.map(task => {
+  //     list[task._id] = false
+  //   })
+  //   return list
+  // }
+
+  // const getInitList = async () => {
+  //   try {
+  //     const res = await axios.get('http://192.168.86.21:3000/api/v1/tasks')
+  //     setTasks({ ...tasks, taskList: res.data, editList: initEditList(res.data) })
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
 
   const getInitList = async () => {
+    loadTodosRequest()
     try {
       const res = await axios.get('http://192.168.86.21:3000/api/v1/tasks')
-      setTasks({ ...tasks, taskList: res.data, editList: initEditList(res.data) })
+      // setTasks({ ...tasks, taskList: res.data, editList: initEditList(res.data) })
+      loadTodosSuccess(res.data)
     } catch (error) {
       console.log(error)
+      loadTodosFailure(error)
     }
   }
 
@@ -148,30 +162,62 @@ const Home = () => {
     }
   }
 
-  return (
+  // return (
+  //   <div className="flex flex-col items-center justify-center">
+  //     <div className="w-full max-w-xs mt-16">
+  //       <AddNew input={ tasks.userInput } addTask={ addTask } handleUserInput={ handleUserInput } />
+  //     </div>
+  //     <TaskContainer 
+  //       tasks={ tasks.taskList } 
+  //       editTask={ editTask } 
+  //       handleTaskEdit={ handleTaskEdit } 
+  //       editList={ tasks.editList } 
+  //       taskChanges={ tasks.taskChanges }
+  //       getEditTitle={ getEditTitle }
+  //       submitEdit={ submitEdit }
+  //       handleDone={ handleDone }
+  //       deleteTask={ deleteTask }
+  //       allActions={ tasks.allActions }
+  //       handleDoneAll={ handleDoneAll }
+  //       editTaskAll={ editTaskAll }
+  //       submitEditAll={ submitEditAll }
+  //       deleteTaskAll={ deleteTaskAll }
+  //       confirmDelete={ confirmDelete }
+  //     />
+  //   </div>
+  // )
+
+    return (
     <div className="flex flex-col items-center justify-center">
       <div className="w-full max-w-xs mt-16">
         <AddNew input={ tasks.userInput } addTask={ addTask } handleUserInput={ handleUserInput } />
       </div>
-      <TaskContainer 
-        tasks={ tasks.taskList } 
-        editTask={ editTask } 
-        handleTaskEdit={ handleTaskEdit } 
-        editList={ tasks.editList } 
-        taskChanges={ tasks.taskChanges }
-        getEditTitle={ getEditTitle }
-        submitEdit={ submitEdit }
-        handleDone={ handleDone }
-        deleteTask={ deleteTask }
-        allActions={ tasks.allActions }
-        handleDoneAll={ handleDoneAll }
-        editTaskAll={ editTaskAll }
-        submitEditAll={ submitEditAll }
-        deleteTaskAll={ deleteTaskAll }
-        confirmDelete={ confirmDelete }
-      />
+      {
+        taskLoading ? 
+        <p>loading...</p>
+        :
+        <TaskContainer 
+          tasks={ taskList } 
+          editTask={ editTask } 
+          handleTaskEdit={ handleTaskEdit } 
+          editList={ editList } 
+          taskChanges={ tasks.taskChanges }
+          getEditTitle={ getEditTitle }
+          submitEdit={ submitEdit }
+          handleDone={ handleDone }
+          deleteTask={ deleteTask }
+          allActions={ tasks.allActions }
+          handleDoneAll={ handleDoneAll }
+          editTaskAll={ editTaskAll }
+          submitEditAll={ submitEditAll }
+          deleteTaskAll={ deleteTaskAll }
+          confirmDelete={ confirmDelete }
+        />
+      }
     </div>
   )
 }
 
-export default Home
+const mapStateToProps = state => ({ taskList: state.taskList, editList: state.editList, taskLoading: state.taskLoading })
+
+export default connect(mapStateToProps, { loadTodosRequest, loadTodosFailure, loadTodosSuccess })(Home)

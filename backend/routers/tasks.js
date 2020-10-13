@@ -6,14 +6,16 @@ const { getDb } = require('../db/dbConnect')
 // get all tasks
 router.get('/api/v1/tasks', async (req, res) => {
   console.log('get all')
-  try {
-    const db = getDb()
-    const tasks = await db.collection('tasks').find({}).toArray()
-    res.status(201).send(tasks)
-  } catch (e) {
-    console.log(e)
-    res.status(500).send(e)
-  }
+  setTimeout(async () => {
+    try {
+      const db = getDb()
+      const tasks = await db.collection('tasks').find({}).toArray()
+      res.status(201).send(tasks)
+    } catch (e) {
+      console.log(e)
+      res.status(500).send(e)
+    }
+  }, 500)
 })
 
 //get one task
