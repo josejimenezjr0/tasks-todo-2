@@ -46,6 +46,7 @@ router.post('/api/v1/tasks', async (req, res) => {
 })
 
 router.put('/api/v1/tasks', async (req, res) => {
+  console.log('req.body: ', req.body);
   const db = getDb()
   const { search, change } = req.body
   const update = {$set: change }
@@ -53,14 +54,16 @@ router.put('/api/v1/tasks', async (req, res) => {
   if(Object.keys(search).length === 0) {
     console.log('update several')
     if(Array.isArray(change)) {
-      change.map(async ([id, title]) => {
-        try {
-          await db.collection('tasks').updateOne({ _id: ObjectId(id) }, { $set: { title } })
-        } catch (e) {
-          console.log(e)
-          return res.status(500).send(e)
-        }
-      })
+      Promise.all(
+        change.map(async ({_id, title}) => {
+          try {
+            await db.collection('tasks').updateOne({ _id: ObjectId(_id) }, { $set: { title } })
+          } catch (e) {
+            console.log(e)
+            return res.status(500).send(e)
+          }
+        })
+      )
       const tasks = await db.collection('tasks').find({}).toArray()
       return res.status(201).send(tasks)
     }
