@@ -1,19 +1,32 @@
+require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
-require('dotenv').config()
+const cookieSession = require('cookie-session')
+const passport = require('passport')
 const { initServer } = require('./db/dbConnect')
-const tasksApi = require('./routers/tasks')
+const tasks = require('./routers/tasks')
+const auth = require('./routers/auth')
+const sampleuser = require('./routers/sampleuser')
+const { COOKIE_SECRET, PORT } = process.env
+
+require('./passport')
 
 const app = express()
 app.use(cors())
 app.use(bodyParser.json())
+app.use(cookieSession({
+  resave: true, 
+  maxAge: 30*24*60*60*1000,
+  secret: COOKIE_SECRET }))
+app.use(passport.initialize())
+app.use(passport.session())
 
-const port = process.env.PORT
+initServer(() => app.listen(PORT, () => console.log(`listening on port: ${PORT}`)))
 
-initServer(() => app.listen(port, () => console.log(`listening on port: ${port}`)))
-
-app.use(tasksApi)
+app.use(auth)
+app.use(tasks)
+app.use(sampleuser)
 
 app.use(express.static(__dirname + '/../frontend/build'))
-app.use("*", (req, res) => res.status(404).json({ error: "not found" }))
+app.get('/*', (req, res) => res.redirect('/'))

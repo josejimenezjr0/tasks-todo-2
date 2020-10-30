@@ -2,7 +2,7 @@ import React from 'react'
 import Task from './Task'
 
 const TaskContainer = (props) => {
-  const { tasks, submitEdit, allActions, toggleEditAll, deleteTask, allToggle, taskChanges } = props
+  const { tasks, submitEdit, allActions, toggleEditAll, deleteTask, allToggle, taskChanges, sample = false } = props
 
   const taskList = tasks.map(task => (
   <Task 
@@ -15,7 +15,7 @@ const TaskContainer = (props) => {
   return (
     <div className="w-full max-w-xs mt-16 bg-gray-300 rounded-lg">
       <div className="px-4 pt-6 pb-8 mb-4">
-        <p className="block text-gray-800 font-bold text-center">List</p>
+        <p name="list" className="block text-gray-800 font-bold text-center">{`${sample ? 'Sample' : ''} List`}</p>
         <div className="flex flex-col justify-around">
           <div className="flex justify-between items-center">
             <div className="mt-4 mr-2">

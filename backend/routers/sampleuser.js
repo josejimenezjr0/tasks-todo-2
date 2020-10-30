@@ -2,19 +2,21 @@ const express = require('express')
 const router = new express.Router()
 const { ObjectId } = require('mongodb')
 const { getDb } = require('../db/dbConnect')
-const { checkCache, setCache } = require('../db/caching')
-const requireLogin = require('../middlewares/requireLogin')
 const cleanCache = require('../middlewares/cleanCache')
+const makeSampleUser = require('../middlewares/makeSampleUser')
+const { v4: uuidv4 } = require('uuid')
 
 // get all tasks
-router.get('/api/v1/tasks', requireLogin, async (req, res) => {
-  console.log('get all')
-  const collection = 'tasks'
-  const query = { user: ObjectId(req.user._id) }
-  const key = { collection, query }
+router.get('/api/v1/sample/tasks', makeSampleUser, async (req, res) => {
+  if(req.user) {
+    console.log('No sample becauce req.user', req.user);
+    return
+  }
+  console.log('sample get all')
 
-  const cachedTasks = await checkCache(key, req.user._id)
-  if(cachedTasks) return res.status(201).send(cachedTasks)
+  const collection = 'tasks'
+  const query = { user: ObjectId(req.session.user._id) }
+  const key = { collection, query }
 
   setTimeout(async () => {
     console.log('mongo')
@@ -22,7 +24,6 @@ router.get('/api/v1/tasks', requireLogin, async (req, res) => {
       const db = getDb()
       const tasks = await db.collection(collection).find(query).toArray()
       res.status(201).send(tasks)
-      setCache(key, tasks, req.user._id)
     } catch (e) {
       console.log(e)
       res.status(500).send(e)
@@ -31,12 +32,12 @@ router.get('/api/v1/tasks', requireLogin, async (req, res) => {
 })
 
 //get one task
-router.get('/api/v1/tasks/:id', requireLogin,  async (req, res) => {
+router.get('/api/v1/sample/tasks/:id', async (req, res) => {
   console.log('get one')
   try {
     const taskID = req.params.id
     const db = getDb()
-    const task = await db.collection('tasks').findOne({ user: ObjectId(req.user._id),  _id: ObjectId(taskID) })
+    const task = await db.collection('tasks').findOne({ user: ObjectId(req.session.user._id),  _id: ObjectId(taskID) })
     res.status(201).send(task)
   } catch (e) {
     console.log(e)
@@ -45,12 +46,12 @@ router.get('/api/v1/tasks/:id', requireLogin,  async (req, res) => {
 })
 
 //add one task
-router.post('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
-  console.log('get add one')
+router.post('/api/v1/sample/tasks', makeSampleUser, async (req, res) => {
+  console.log('sample get add one')
   try {
     const db = getDb()
-    await db.collection('tasks').insertOne({ ...req.body, user: ObjectId(req.user._id) })
-    const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+    await db.collection('tasks').insertOne({ ...req.body, sample: true, startTime: Date.now(), user: ObjectId(req.session.user._id) })
+    const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
     res.status(201).send(tasks)
   } catch (e) {
     console.log(e)
@@ -59,7 +60,7 @@ router.post('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
 })
 
 //update one or many tasks
-router.put('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
+router.put('/api/v1/sample/tasks', async (req, res) => {
   console.log('req.body: ', req.body);
   const db = getDb()
   const { search, change } = req.body
@@ -73,21 +74,21 @@ router.put('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
       Promise.all(
         change.map(async ({_id, title}) => {
           try {
-            await db.collection('tasks').updateOne({ user: ObjectId(req.user._id), _id: ObjectId(_id) }, { $set: { title } })
+            await db.collection('tasks').updateOne({ user: ObjectId(req.session.user._id), _id: ObjectId(_id) }, { $set: { title } })
           } catch (e) {
             console.log(e)
             return res.status(500).send(e)
           }
         })
       )
-      const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+      const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
       return res.status(201).send(tasks)
     }
 
     //if not array then update multiple items with same value
     try {
-      await db.collection('tasks').updateMany({ user: ObjectId(req.user._id) }, update)
-      const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+      await db.collection('tasks').updateMany({ user: ObjectId(req.session.user._id) }, update)
+      const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
       return res.status(201).send(tasks)
     } catch (e) {
       console.log(e)
@@ -96,11 +97,11 @@ router.put('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
   }
 
   //update single item
-  const query = search.hasOwnProperty('_id') ? { user: ObjectId(req.user._id), _id: ObjectId(search._id) } : { ...search }
+  const query = search.hasOwnProperty('_id') ? { user: ObjectId(req.session.user._id), _id: ObjectId(search._id) } : { ...search }
 
   try {
     await db.collection('tasks').updateOne(query, update)
-    const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+    const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
     res.status(201).send(tasks)
   } catch (e) {
     console.log(e)
@@ -109,7 +110,7 @@ router.put('/api/v1/tasks', requireLogin, cleanCache, async (req, res) => {
 })
 
 //delete one or all
-router.delete('/api/v1/tasks/:id', requireLogin, cleanCache, async (req, res) => {
+router.delete('/api/v1/sample/tasks/:id', async (req, res) => {
   console.log('delete')
   try {
     const taskID = req.params.id
@@ -117,8 +118,8 @@ router.delete('/api/v1/tasks/:id', requireLogin, cleanCache, async (req, res) =>
       console.log('delete All')
       try {
         const db = getDb()
-        await db.collection('tasks').deleteMany({ user: ObjectId(req.user._id) })
-        const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+        await db.collection('tasks').deleteMany({ user: ObjectId(req.session.user._id) })
+        const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
         return res.status(201).send(tasks)
       } catch (e) {
         console.log(e)
@@ -126,8 +127,8 @@ router.delete('/api/v1/tasks/:id', requireLogin, cleanCache, async (req, res) =>
       }
     }
     const db = getDb()
-    await db.collection('tasks').deleteOne({ user: ObjectId(req.user._id), _id: ObjectId(taskID) })
-    const tasks = await db.collection('tasks').find({ user: ObjectId(req.user._id) }).toArray()
+    await db.collection('tasks').deleteOne({ user: ObjectId(req.session.user._id), _id: ObjectId(taskID) })
+    const tasks = await db.collection('tasks').find({ user: ObjectId(req.session.user._id) }).toArray()
     res.status(201).send(tasks)
   } catch (e) {
     console.log(e)

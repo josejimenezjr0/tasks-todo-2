@@ -9,10 +9,11 @@ const actionList = [
   'TOGGLE_DONE_ALL',
   'TOGGLE_EDIT_ALL',
   'ALL_TOGGLE',
-  'ALL_SUBMIT'
+  'ALL_SUBMIT',
+  'GET_USER'
 ]
 
-const initialState = { taskList: [], taskChanges: [], allActions: { edit: false, delete: false } }
+const initialState = { taskList: [], taskChanges: [], allActions: { edit: false, delete: false }, user: null }
 const actions = actionList.reduce((list, action) => ({ ...list, [action]: action }), {})
 
 export const actionGenerators = {
@@ -23,7 +24,8 @@ export const actionGenerators = {
   editInputs: (e, id) => ({ type: actions.EDIT_INPUTS, payload: { e, id } }),
   toggleEditAll: () => ({ type: actions.TOGGLE_EDIT_ALL }),
   allToggle: (type, change) => ({ type: actions.ALL_TOGGLE, payload: { type, change } }),
-  allSubmit: () => ({ type: actions.ALL_SUBMIT })
+  allSubmit: () => ({ type: actions.ALL_SUBMIT }),
+  getUser: res => ({ type: actions.GET_USER, payload: res })
 }
 
 const getTask = (state, id) => {
@@ -43,7 +45,8 @@ const handlers = {
   [actions.EDIT_INPUTS]: (state, { payload: { e, id } }) => ({ ...state, taskChanges: inputs(state, e, id)}),
   [actions.TOGGLE_EDIT_ALL]: state => ({ ...state, allActions: { ...state.allActions, edit: true }, taskChanges: [...new Map([...state.taskList, ...state.taskChanges].map(task => [task._id, task])).values()]}),
   [actions.ALL_TOGGLE]: (state, { payload: { type, change } }) => ({ ...state, allActions: { ...state.allActions, [type]: change } }),
-  [actions.ALL_SUBMIT]: state => ({ ...state, taskChanges: [] })
+  [actions.ALL_SUBMIT]: state => ({ ...state, taskChanges: [] }),
+  [actions.GET_USER]: (state, { payload }) => ({ ...state, user: payload })
 }
 
 const reducer = (state = initialState, action) => handlers.hasOwnProperty(action.type) ? handlers[action.type](state, action) : state
